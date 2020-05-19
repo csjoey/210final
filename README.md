@@ -13,6 +13,10 @@ This connects port 8080 on the client to port 8080 on the server.
 
 
 
-To play the game connect the two pi's and on the client side make the first move
+To play the game connect the two pi's and on the client side make the first move, I reccomend forwards ports ofthe same number to each other
 
 the game ends when a block is placed using the joystick that does not line up with the previous ones in a straight line, or the top is reached.
+
+pkill scrollnum reccomended
+
+because of the nature of the execution this game can be played on a single pi with a client and server head
