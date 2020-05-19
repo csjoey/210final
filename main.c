@@ -16,6 +16,7 @@
 #define SA struct sockaddr 
 // Joseph Loporto final project server/client to play stacker with a friend
 // Joystick to start and then place blocks
+// reccomend pkill scrollnum and then watch console when playing
 int MODE;
 int GAME = 1;
 int RECV_FLAG = 0;
@@ -176,10 +177,10 @@ int main(int argc, char const *argv[]){
     }else{
         printf("server acccept the client...\n"); 
     }
-    // Function for chatting between client and server 
+    //  between client and server 
     serv_game(connfd); 
   
-    // After chatting close the socket 
+    //close the socket 
     close(sockfd);
     }
 }
