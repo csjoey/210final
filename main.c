@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include "game.c"
+#include <signal.h>
 #define CLIENT_C 720
 #define SERVER_C 370
 #define BUFF_SIZE 2048
@@ -19,6 +20,12 @@ int MODE;
 int GAME = 1;
 int RECV_FLAG = 0;
 int PORT;
+int run = 1;
+// interrupt for clean exit
+void interruptHandler(){
+	run = 0;
+}
+
 void serv_game(int sockfd){ 
 	//Servers handshake
 	char buff[BUFF_SIZE]; 
@@ -32,23 +39,24 @@ void serv_game(int sockfd){
 	bzero(buff,sizeof(buff)); // clear buffer
 	struct game_state gameS = {0,0,0};
 
-	while(!gameS.game_over){
-		read(sockfd,buff,sizeof(buff)); // read first game state
-		memcpy(&gameS,buff,sizeof(buff));
-		bzero(buff,sizeof(buff));
-		gameS = game(gameS); // play game
-		memcpy(buff,&gameS,sizeof(gameS));
-		write(sockfd,buff,sizeof(buff));
+	while(!gameS.game_over && run){
+		signal(SIGINT,interruptHandler); // handle exiting
+		read(sockfd,buff,sizeof(buff)); // read game state
+		memcpy(&gameS,buff,sizeof(buff)); // copy received game state
+		bzero(buff,sizeof(buff)); // clear buffer
+		gameS = game(gameS); // play game and update game state
+		memcpy(buff,&gameS,sizeof(gameS)); // copy game state to buffer
+		write(sockfd,buff,sizeof(buff)); // send game state to cliend
 		bzero(buff,sizeof(buff));
 	}
-	outsideClear();
+	outsideClear(); // clear screen when exiting
 	printf("Game over...Exiting\n");
 }  
 
 void client_game(int sockfd){ 
     	char buff[BUFF_SIZE]; 
 	//Clients handshake
-        bzero(buff, sizeof(buff));
+        bzero(buff, sizeof(buff)); // clear buffer
        	strcpy(buff,"GAMESTART");	 
         write(sockfd, buff, sizeof(buff)); 
         bzero(buff, sizeof(buff)); 
@@ -57,7 +65,8 @@ void client_game(int sockfd){
 		printf("Handshake confirmed \nStarting game \n");
 	}
 	struct game_state gameS = {0,0,0}; // Setup game state
-	while(!gameS.game_over){
+	while(!gameS.game_over && run){
+		signal(SIGINT,interruptHandler);
 		gameS = game(gameS); // Play round
 		memcpy(buff,&gameS,sizeof(gameS)); // Copy state into buffer
 		write(sockfd,buff,sizeof(buff)); // Write buffer to socket
@@ -70,7 +79,7 @@ void client_game(int sockfd){
 	outsideClear();
 } 
  
- 
+// Main function // Flow is main calling one of the above which calls play() from game.c
 
 int main(int argc, char const *argv[]){
 	if(argc == 3){
@@ -99,9 +108,13 @@ int main(int argc, char const *argv[]){
     }
     bzero(&servaddr, sizeof(servaddr)); 
   
-    // assign IP, PORT 
+    // assign IP, PORT and resolve localhost 
     servaddr.sin_family = AF_INET;
+    if(strcmp(argv[2],"localhost") != 0){
+    servaddr.sin_addr.s_addr = inet_addr(argv[2]);
+    }else{
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
+    }
     servaddr.sin_port = htons(PORT); 
   
     // connect the client socket to server socket 
